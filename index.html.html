@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GraphExplorer — เรียนรู้กราฟแบบ Interactive</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --teal: #0F6E56;
+    --teal-light: #1D9E75;
+    --teal-pale: #E1F5EE;
+    --amber: #BA7517;
+    --amber-light: #EF9F27;
+    --amber-pale: #FAEEDA;
+    --purple: #534AB7;
+    --purple-pale: #EEEDFE;
+    --coral: #D85A30;
+    --coral-pale: #FAECE7;
+    --gray-900: #1a1a1a;
+    --gray-700: #444441;
+    --gray-500: #888780;
+    --gray-300: #D3D1C7;
+    --gray-100: #F5F4F0;
+    --white: #ffffff;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 2px 16px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: var(--gray-100);
+    color: var(--gray-900);
+    min-height: 100vh;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  /* ─── Header ─── */
+  header {
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-300);
+    padding: 0 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    height: 64px;
+    gap: 1rem;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--teal);
+    letter-spacing: -0.5px;
+  }
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: var(--teal);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .logo-icon svg { width: 20px; height: 20px; fill: none; stroke: white; stroke-width: 2; }
+  .header-badge {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--teal);
+    background: var(--teal-pale);
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-left: auto;
+  }
+
+  /* ─── Layout ─── */
+  .app-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 1.25rem;
+  }
+
+  /* ─── Cards ─── */
+  .card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 1.25rem;
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    margin-bottom: 1rem;
+  }
+
+  /* ─── Graph Type Tabs ─── */
+  .graph-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 1.25rem;
+  }
+  .tab-btn {
+    padding: 10px 8px;
+    border: 1.5px solid var(--gray-300);
+    background: var(--white);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-700);
+    text-align: center;
+    transition: all 0.2s;
+    line-height: 1.3;
+  }
+  .tab-btn:hover { border-color: var(--teal-light); color: var(--teal); }
+  .tab-btn.active {
+    border-color: var(--teal);
+    background: var(--teal-pale);
+    color: var(--teal);
+  }
+  .tab-btn .tab-formula {
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    margin-top: 3px;
+    color: var(--gray-500);
+  }
+  .tab-btn.active .tab-formula { color: var(--teal-light); }
+
+  /* ─── Sliders ─── */
+  .slider-group { margin-bottom: 1rem; }
+  .slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .slider-label { font-size: 14px; font-weight: 500; color: var(--gray-700); }
+  .slider-label .param-name {
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--teal);
+    font-size: 14px;
+    background: var(--teal-pale);
+    padding: 1px 7px;
+    border-radius: 5px;
+  }
+  .slider-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--gray-900);
+    min-width: 50px;
+    text-align: right;
+  }
+  input[type="range"] {
+    width: 100%;
+    height: 5px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--gray-300);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--teal);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(15,110,86,0.4);
+    transition: transform 0.1s;
+  }
+  input[type="range"]::-webkit-slider-thumb:active { transform: scale(1.2); }
+  .slider-range {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--gray-500);
+    font-family: 'IBM Plex Mono', monospace;
+    margin-top: 3px;
+  }
+
+  /* ─── Scenario Toggle ─── */
+  .scenario-section { margin-top: 1.25rem; }
+  .scenario-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+  .toggle-group {
+    display: flex;
+    background: var(--gray-100);
+    border-radius: 8px;
+    padding: 3px;
+  }
+  .toggle-btn {
+    padding: 5px 14px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-500);
+    transition: all 0.2s;
+  }
+  .toggle-btn.active { background: var(--white); color: var(--gray-900); box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
+
+  .scenario-ab { display: none; }
+  .scenario-ab.visible { display: block; }
+
+  .ab-sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ab-col { padding: 10px; border-radius: 8px; }
+  .ab-col.a-col { background: rgba(83,74,183,0.06); border: 1px solid rgba(83,74,183,0.15); }
+  .ab-col.b-col { background: rgba(216,90,48,0.06); border: 1px solid rgba(216,90,48,0.15); }
+  .ab-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .a-label { color: var(--purple); }
+  .b-label { color: var(--coral); }
+  .ab-col input[type="range"]::-webkit-slider-thumb { background: var(--purple); }
+  .ab-col.b-col input[type="range"]::-webkit-slider-thumb { background: var(--coral); }
+  .ab-value { font-family: 'IBM Plex Mono', monospace; font-size: 16px; font-weight: 600; }
+  .a-val { color: var(--purple); }
+  .b-val { color: var(--coral); }
+
+  /* ─── Right Panel ─── */
+  .right-panel { display: flex; flex-direction: column; gap: 1.25rem; }
+
+  /* ─── Chart Area ─── */
+  .chart-card { flex: 0 0 auto; }
+  .chart-wrapper { position: relative; height: 360px; }
+
+  /* ─── Equation Display ─── */
+  .equation-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 12px 1.25rem;
+    background: var(--gray-900);
+    border-radius: var(--radius-sm);
+    margin-bottom: 1rem;
+  }
+  .equation-text {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 18px;
+    font-weight: 500;
+    color: white;
+    letter-spacing: 0.5px;
+  }
+  .equation-badge {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.3px;
+  }
+  .badge-a { background: rgba(83,74,183,0.3); color: #AFA9EC; }
+  .badge-b { background: rgba(216,90,48,0.3); color: #F0997B; }
+  .badge-single { background: rgba(29,158,117,0.3); color: #5DCAA5; }
+
+  /* ─── Info Panel ─── */
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 1rem;
+  }
+  .info-stat {
+    background: var(--gray-100);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    text-align: center;
+  }
+  .info-stat-label { font-size: 11px; color: var(--gray-500); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .info-stat-val { font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600; color: var(--gray-900); }
+
+  /* ─── Explanation Card ─── */
+  .explain-card {}
+  .explain-main {
+    font-size: 15px;
+    line-height: 1.8;
+    color: var(--gray-700);
+    margin-bottom: 1rem;
+  }
+  .explain-main strong { color: var(--gray-900); }
+
+  .insight-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .insight-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 14px;
+    color: var(--gray-700);
+    padding: 10px 12px;
+    background: var(--gray-100);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid transparent;
+  }
+  .insight-item.positive { border-left-color: var(--teal); background: var(--teal-pale); color: #085041; }
+  .insight-item.caution  { border-left-color: var(--amber); background: var(--amber-pale); color: #633806; }
+  .insight-item.neutral  { border-left-color: var(--purple); background: var(--purple-pale); color: #3C3489; }
+  .insight-item.info     { border-left-color: #378ADD; background: #E6F1FB; color: #0C447C; }
+  .insight-icon { font-size: 14px; margin-top: 1px; flex-shrink: 0; }
+
+  /* ─── Footer ─── */
+  footer {
+    text-align: center;
+    padding: 2rem;
+    color: var(--gray-500);
+    font-size: 13px;
+  }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 900px) {
+    .app-container { grid-template-columns: 1fr; }
+    .right-panel .chart-wrapper { height: 280px; }
+  }
+
+  /* Animations */
+  .insight-item { transition: all 0.3s; }
+  .equation-text { transition: all 0.2s; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><polyline points="4,17 9,12 13,15 20,7"/><line x1="20" y1="7" x2="20" y2="12"/><line x1="20" y1="7" x2="15" y2="7"/></svg>
+    </div>
+    GraphExplorer
+  </div>
+  <span class="header-badge">เครื่องมือการเรียนรู้ Interactive</span>
+</header>
+
+<div class="app-container">
+
+  <!-- ─── Left Panel: Controls ─── -->
+  <aside>
+    <!-- Graph Type -->
+    <div class="card" style="margin-bottom:1.25rem;">
+      <div class="card-title">เลือกประเภทกราฟ</div>
+      <div class="graph-tabs">
+        <button class="tab-btn active" onclick="setGraphType('linear',this)">
+          เส้นตรง
+          <span class="tab-formula">y = mx + b</span>
+        </button>
+        <button class="tab-btn" onclick="setGraphType('quadratic',this)">
+          พาราโบลา
+          <span class="tab-formula">y = ax² + bx + c</span>
+        </button>
+        <button class="tab-btn" onclick="setGraphType('absolute',this)">
+          ค่าสัมบูรณ์
+          <span class="tab-formula">y = a|x − h| + k</span>
+        </button>
+        <button class="tab-btn" onclick="setGraphType('exponential',this)">
+          เอกซ์โพเนนเชียล
+          <span class="tab-formula">y = a · bˣ</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Parameters -->
+    <div class="card" id="param-card">
+      <div class="card-title">ปรับค่าพารามิเตอร์</div>
+      <div id="sliders-container"></div>
+
+      <!-- Scenario Mode -->
+      <div class="scenario-section">
+        <div class="scenario-header">
+          <span class="card-title" style="margin:0;">โหมดสถานการณ์</span>
+          <div class="toggle-group">
+            <button class="toggle-btn active" onclick="setMode('single',this)">ปกติ</button>
+            <button class="toggle-btn" onclick="setMode('ab',this)">A / B</button>
+          </div>
+        </div>
+
+        <div class="scenario-ab" id="ab-panel">
+          <div class="ab-sliders">
+            <div class="ab-col a-col">
+              <div class="ab-label a-label">กรณี A</div>
+              <div id="ab-a-sliders"></div>
+            </div>
+            <div class="ab-col b-col">
+              <div class="ab-label b-label">กรณี B</div>
+              <div id="ab-b-sliders"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ─── Right Panel: Chart + Explanation ─── -->
+  <div class="right-panel">
+
+    <!-- Chart Card -->
+    <div class="card chart-card">
+      <div class="equation-bar">
+        <span class="equation-text" id="eq-display">y = x</span>
+        <span class="equation-badge badge-single" id="eq-badge">กราฟปัจจุบัน</span>
+      </div>
+      <div class="chart-wrapper">
+        <canvas id="mainChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Key Info Stats -->
+    <div class="card">
+      <div class="card-title">ข้อมูลสำคัญของกราฟ</div>
+      <div class="info-grid" id="info-grid"></div>
+    </div>
+
+    <!-- Explanation -->
+    <div class="card explain-card">
+      <div class="card-title">คำอธิบายกราฟ</div>
+      <div class="explain-main" id="explain-main"></div>
+      <ul class="insight-list" id="insight-list"></ul>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  GraphExplorer · สร้างขึ้นเพื่อการศึกษา · นักเรียนมัธยมปลาย – ปี 1 มหาวิทยาลัย
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════ */
+let graphType = 'linear';
+let mode = 'single';
+let params = { m: 1, b: 0 };
+let paramsA = {};
+let paramsB = {};
+
+const GRAPH_CONFIGS = {
+  linear: {
+    params: [
+      { key: 'm', label: 'ความชัน', name: 'm', min: -5, max: 5, step: 0.5, default: 1 },
+      { key: 'b', label: 'จุดตัดแกน Y', name: 'b', min: -8, max: 8, step: 1, default: 0 }
+    ],
+    xRange: [-8, 8],
+    fn: (x, p) => p.m * x + p.b
+  },
+  quadratic: {
+    params: [
+      { key: 'a', label: 'สัมประสิทธิ์', name: 'a', min: -3, max: 3, step: 0.5, default: 1 },
+      { key: 'b', label: 'พจน์ bx', name: 'b', min: -4, max: 4, step: 1, default: 0 },
+      { key: 'c', label: 'ค่าคงที่', name: 'c', min: -6, max: 6, step: 1, default: 0 }
+    ],
+    xRange: [-6, 6],
+    fn: (x, p) => p.a * x * x + p.b * x + p.c
+  },
+  absolute: {
+    params: [
+      { key: 'a', label: 'ความชัน', name: 'a', min: -4, max: 4, step: 0.5, default: 1 },
+      { key: 'h', label: 'เลื่อนแนวนอน', name: 'h', min: -5, max: 5, step: 1, default: 0 },
+      { key: 'k', label: 'เลื่อนแนวตั้ง', name: 'k', min: -5, max: 5, step: 1, default: 0 }
+    ],
+    xRange: [-8, 8],
+    fn: (x, p) => p.a * Math.abs(x - p.h) + p.k
+  },
+  exponential: {
+    params: [
+      { key: 'a', label: 'ค่าเริ่มต้น', name: 'a', min: 0.5, max: 4, step: 0.5, default: 1 },
+      { key: 'b', label: 'ฐาน (Base)', name: 'b', min: 0.2, max: 3, step: 0.1, default: 2 }
+    ],
+    xRange: [-5, 5],
+    fn: (x, p) => p.a * Math.pow(Math.abs(p.b), x)
+  }
+};
+
+/* ═══════════════════════════════════════════════════════
+   CHART SETUP
+═══════════════════════════════════════════════════════ */
+const ctx = document.getElementById('mainChart').getContext('2d');
+let chart = new Chart(ctx, {
+  type: 'line',
+  data: { labels: [], datasets: [] },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 300 },
+    interaction: { intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (item) => ` y = ${parseFloat(item.parsed.y.toFixed(2))}`
+        },
+        backgroundColor: '#1a1a1a',
+        titleFont: { family: 'IBM Plex Mono', size: 13 },
+        bodyFont: { family: 'IBM Plex Mono', size: 13 },
+        padding: 10, cornerRadius: 8
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: 'rgba(0,0,0,0.06)' },
+        ticks: { font: { family: 'IBM Plex Mono', size: 11 }, color: '#888' },
+        title: { display: true, text: 'แกน X', font: { family: 'Sarabun', size: 12 }, color: '#888' }
+      },
+      y: {
+        grid: { color: 'rgba(0,0,0,0.06)' },
+        ticks: { font: { family: 'IBM Plex Mono', size: 11 }, color: '#888' },
+        title: { display: true, text: 'แกน Y', font: { family: 'Sarabun', size: 12 }, color: '#888' },
+        min: -10, max: 10
+      }
+    }
+  }
+});
+
+/* ═══════════════════════════════════════════════════════
+   GENERATE X/Y DATA
+═══════════════════════════════════════════════════════ */
+function generateData(fn, xRange) {
+  const [xMin, xMax] = xRange;
+  const pts = 120;
+  const labels = [], data = [];
+  for (let i = 0; i <= pts; i++) {
+    const x = xMin + (xMax - xMin) * i / pts;
+    labels.push(parseFloat(x.toFixed(2)));
+    let y = fn(x, params);
+    if (!isFinite(y) || Math.abs(y) > 500) y = null;
+    data.push(y !== null ? parseFloat(y.toFixed(3)) : null);
+  }
+  return { labels, data };
+}
+
+/* ═══════════════════════════════════════════════════════
+   UPDATE CHART
+═══════════════════════════════════════════════════════ */
+function updateChart() {
+  const cfg = GRAPH_CONFIGS[graphType];
+  const { labels, data } = generateData(cfg.fn, cfg.xRange);
+
+  if (mode === 'single') {
+    chart.data.labels = labels;
+    chart.data.datasets = [{
+      data,
+      borderColor: '#0F6E56',
+      borderWidth: 2.5,
+      pointRadius: 0,
+      tension: 0.1,
+      spanGaps: false
+    }];
+    chart.options.scales.y.min = -10;
+    chart.options.scales.y.max = 10;
+  } else {
+    const dA = generateDataWith(cfg.fn, cfg.xRange, paramsA);
+    const dB = generateDataWith(cfg.fn, cfg.xRange, paramsB);
+    chart.data.labels = dA.labels;
+    chart.data.datasets = [
+      { label: 'กรณี A', data: dA.data, borderColor: '#534AB7', borderWidth: 2.5, pointRadius: 0, tension: 0.1, spanGaps: false },
+      { label: 'กรณี B', data: dB.data, borderColor: '#D85A30', borderWidth: 2.5, borderDash: [6, 3], pointRadius: 0, tension: 0.1, spanGaps: false }
+    ];
+  }
+  chart.update();
+  updateEquation();
+  updateInfoStats();
+  updateExplanation();
+}
+
+function generateDataWith(fn, xRange, p) {
+  const saved = params;
+  params = p;
+  const result = generateData(fn, xRange);
+  params = saved;
+  return result;
+}
+
+/* ═══════════════════════════════════════════════════════
+   EQUATION DISPLAY
+═══════════════════════════════════════════════════════ */
+function formatNum(n) {
+  const v = parseFloat(parseFloat(n).toFixed(2));
+  return v;
+}
+function sign(n) { return n >= 0 ? '+' : ''; }
+
+function buildEquation(p) {
+  if (graphType === 'linear') {
+    const m = formatNum(p.m), b = formatNum(p.b);
+    return `y = ${m}x ${sign(b)} ${b}`;
+  }
+  if (graphType === 'quadratic') {
+    const a = formatNum(p.a), b = formatNum(p.b), c = formatNum(p.c);
+    return `y = ${a}x² ${sign(b)} ${b}x ${sign(c)} ${c}`;
+  }
+  if (graphType === 'absolute') {
+    const a = formatNum(p.a), h = formatNum(p.h), k = formatNum(p.k);
+    const inner = h === 0 ? 'x' : (h > 0 ? `x − ${h}` : `x + ${Math.abs(h)}`);
+    return `y = ${a}|${inner}| ${sign(k)} ${k}`;
+  }
+  if (graphType === 'exponential') {
+    return `y = ${formatNum(p.a)} · ${formatNum(p.b)}ˣ`;
+  }
+}
+
+function updateEquation() {
+  const eq = document.getElementById('eq-display');
+  const badge = document.getElementById('eq-badge');
+  if (mode === 'single') {
+    eq.textContent = buildEquation(params);
+    badge.textContent = 'กราฟปัจจุบัน';
+    badge.className = 'equation-badge badge-single';
+  } else {
+    eq.textContent = `A: ${buildEquation(paramsA)}   |   B: ${buildEquation(paramsB)}`;
+    badge.textContent = 'เปรียบเทียบ A / B';
+    badge.className = 'equation-badge badge-a';
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   INFO STATS
+═══════════════════════════════════════════════════════ */
+function updateInfoStats() {
+  const cfg = GRAPH_CONFIGS[graphType];
+  const grid = document.getElementById('info-grid');
+  let stats = [];
+
+  if (graphType === 'linear') {
+    const m = params.m, b = params.b;
+    const xInt = m !== 0 ? (-b / m) : null;
+    stats = [
+      { label: 'ความชัน (Slope)', val: formatNum(m) },
+      { label: 'จุดตัดแกน Y', val: `(0, ${formatNum(b)})` },
+      { label: 'จุดตัดแกน X', val: xInt !== null ? `(${parseFloat(xInt.toFixed(2))}, 0)` : '—' }
+    ];
+  } else if (graphType === 'quadratic') {
+    const a = params.a, b = params.b, c = params.c;
+    const vx = -b / (2 * a);
+    const vy = a * vx * vx + b * vx + c;
+    const disc = b * b - 4 * a * c;
+    stats = [
+      { label: 'จุดยอด (Vertex)', val: `(${parseFloat(vx.toFixed(2))}, ${parseFloat(vy.toFixed(2))})` },
+      { label: 'ดิสคริมิแนนต์', val: parseFloat(disc.toFixed(2)) },
+      { label: 'จุดตัดแกน Y', val: `(0, ${formatNum(c)})` }
+    ];
+  } else if (graphType === 'absolute') {
+    const a = params.a, h = params.h, k = params.k;
+    stats = [
+      { label: 'จุดยอด (Vertex)', val: `(${h}, ${k})` },
+      { label: 'ทิศทาง', val: a > 0 ? 'เปิดบน ∧' : 'เปิดล่าง ∨' },
+      { label: 'ความชัน', val: `±${Math.abs(formatNum(a))}` }
+    ];
+  } else if (graphType === 'exponential') {
+    const a = params.a, b = params.b;
+    stats = [
+      { label: 'ค่าที่ x=0', val: formatNum(a) },
+      { label: 'แนวโน้ม', val: b > 1 ? 'เพิ่มขึ้น ↗' : 'ลดลง ↘' },
+      { label: 'ค่าที่ x=3', val: parseFloat((a * Math.pow(b, 3)).toFixed(2)) }
+    ];
+  }
+
+  grid.innerHTML = stats.map(s => `
+    <div class="info-stat">
+      <div class="info-stat-label">${s.label}</div>
+      <div class="info-stat-val">${s.val}</div>
+    </div>
+  `).join('');
+}
+
+/* ═══════════════════════════════════════════════════════
+   EXPLANATION ENGINE
+═══════════════════════════════════════════════════════ */
+function updateExplanation() {
+  const main = document.getElementById('explain-main');
+  const list = document.getElementById('insight-list');
+  let text = '', insights = [];
+
+  if (graphType === 'linear') {
+    const m = params.m, b = params.b;
+    const mAbs = Math.abs(m);
+    const dir = m > 0 ? 'เพิ่มขึ้น' : m < 0 ? 'ลดลง' : 'คงที่';
+    const steepness = mAbs < 1 ? 'ค่อนข้างแบน' : mAbs < 3 ? 'ชันปานกลาง' : 'ชันมาก';
+    const xInt = m !== 0 ? parseFloat((-b / m).toFixed(2)) : null;
+
+    text = `กราฟเส้นตรงนี้มีสมการ <strong>${buildEquation(params)}</strong>
+ค่าความชัน <strong>m = ${m}</strong> บอกว่าเมื่อ x เพิ่มขึ้น 1 หน่วย ค่า y จะ${dir} ${mAbs} หน่วย
+กราฟมีลักษณะ${steepness} และตัดแกน Y ที่จุด <strong>(0, ${b})</strong>`;
+
+    insights.push({ type: m > 0 ? 'positive' : m < 0 ? 'caution' : 'neutral', icon: m > 0 ? '↗' : m < 0 ? '↘' : '→', text: m === 0 ? 'ความชัน = 0: เส้นขนานแกน X ค่า y ไม่เปลี่ยนแปลง' : `ความชัน ${m > 0 ? 'บวก' : 'ลบ'} → กราฟเอียง${m > 0 ? 'ขวาขึ้น' : 'ขวาลง'}` });
+    if (xInt !== null) insights.push({ type: 'info', icon: '✕', text: `จุดตัดแกน X ที่ (${xInt}, 0) คือจุดที่ y = 0` });
+    if (Math.abs(m) > 3) insights.push({ type: 'caution', icon: '!', text: 'ความชันสูงมาก กราฟจะชันมองเห็นได้ชัดเจน' });
+    insights.push({ type: 'neutral', icon: 'i', text: `ทุกๆ x ที่เพิ่ม 1 ค่า y เปลี่ยน ${m > 0 ? '+' : ''}${m} เสมอ — นี่คือความสม่ำเสมอของฟังก์ชันเชิงเส้น` });
+
+  } else if (graphType === 'quadratic') {
+    const a = params.a, b = params.b, c = params.c;
+    const vx = parseFloat((-b / (2 * a)).toFixed(2));
+    const vy = parseFloat((a * vx * vx + b * vx + c).toFixed(2));
+    const disc = b * b - 4 * a * c;
+    const opens = a > 0 ? 'เปิดขึ้น (รูปตัว U)' : 'เปิดลง (รูปตัว ∩)';
+
+    text = `กราฟพาราโบลานี้มีสมการ <strong>${buildEquation(params)}</strong>
+พาราโบลา${opens} เนื่องจาก a = ${a} ${a > 0 ? '> 0' : '< 0'}
+จุดยอด (Vertex) อยู่ที่ <strong>(${vx}, ${vy})</strong> ซึ่งเป็นจุดต่ำสุดหรือสูงสุดของกราฟ`;
+
+    insights.push({ type: a > 0 ? 'positive' : 'caution', icon: a > 0 ? 'U' : '∩', text: `a = ${a} ${a > 0 ? '> 0: กราฟหงายขึ้น มีค่าต่ำสุดที่จุดยอด' : '< 0: กราฟคว่ำลง มีค่าสูงสุดที่จุดยอด'}` });
+    if (disc > 0) insights.push({ type: 'info', icon: '2', text: `ดิสคริมิแนนต์ = ${parseFloat(disc.toFixed(2))} > 0 → กราฟตัดแกน X สองจุด` });
+    else if (disc === 0) insights.push({ type: 'neutral', icon: '1', text: `ดิสคริมิแนนต์ = 0 → กราฟสัมผัสแกน X หนึ่งจุดพอดี` });
+    else insights.push({ type: 'caution', icon: '0', text: `ดิสคริมิแนนต์ = ${parseFloat(disc.toFixed(2))} < 0 → ไม่มีรากจริง ไม่ตัดแกน X` });
+    insights.push({ type: 'positive', icon: '↔', text: `กราฟสมมาตรรอบเส้นตรง x = ${vx}` });
+
+  } else if (graphType === 'absolute') {
+    const a = params.a, h = params.h, k = params.k;
+
+    text = `กราฟค่าสัมบูรณ์นี้มีสมการ <strong>${buildEquation(params)}</strong>
+รูปร่างเป็นตัว V หรือ Λ มีจุดยอดที่ <strong>(${h}, ${k})</strong>
+ค่า a = ${a} กำหนดทิศทางและความชันของขาทั้งสองข้าง`;
+
+    insights.push({ type: a > 0 ? 'positive' : 'caution', icon: a > 0 ? 'V' : 'Λ', text: `a = ${a} ${a > 0 ? '> 0: กราฟรูปตัว V เปิดบน' : '< 0: กราฟรูปตัว Λ คว่ำลง'}` });
+    insights.push({ type: 'neutral', icon: '↔', text: `เลื่อนซ้าย/ขวา ด้วย h = ${h}: จุดยอดอยู่ที่ x = ${h}` });
+    insights.push({ type: 'info', icon: '↕', text: `เลื่อนขึ้น/ลง ด้วย k = ${k}: จุดยอดอยู่ที่ y = ${k}` });
+    insights.push({ type: 'positive', icon: '=', text: `ทั้งสองข้างของกราฟมีความชันขนาด |${a}| เท่ากัน — สะท้อนซ้าย-ขวา` });
+
+  } else if (graphType === 'exponential') {
+    const a = params.a, b = params.b;
+    const trend = b > 1 ? 'เพิ่มขึ้นอย่างรวดเร็ว (Exponential Growth)' : 'ลดลงอย่างรวดเร็ว (Exponential Decay)';
+
+    text = `กราฟเอกซ์โพเนนเชียลนี้มีสมการ <strong>${buildEquation(params)}</strong>
+ฐาน (Base) b = ${b} ทำให้กราฟ${trend}
+เมื่อ x = 0 กราฟจะผ่านจุด (0, ${a}) เสมอ`;
+
+    insights.push({ type: b > 1 ? 'positive' : 'caution', icon: b > 1 ? '↗' : '↘', text: b > 1 ? `b = ${b} > 1: ทุก x ที่เพิ่ม ค่า y จะคูณด้วย ${b} — เพิ่มแบบทวีคูณ` : `b = ${b} < 1: ทุก x ที่เพิ่ม ค่า y จะลดเหลือ ${b} เท่า — ลดแบบเอกซ์โพเนนเชียล` });
+    insights.push({ type: 'neutral', icon: '—', text: `แกน X เป็น asymptote แนวนอน: กราฟจะใกล้ y = 0 แต่ไม่แตะ` });
+    insights.push({ type: 'info', icon: 'a', text: `ค่า a = ${a} คือจุดตั้งต้น — เปลี่ยน a จะยืดหรือหดกราฟในแนวตั้ง` });
+  }
+
+  main.innerHTML = text;
+  list.innerHTML = insights.map(i => `
+    <li class="insight-item ${i.type}">
+      <span class="insight-icon">${i.icon}</span>
+      <span>${i.text}</span>
+    </li>
+  `).join('');
+}
+
+/* ═══════════════════════════════════════════════════════
+   BUILD SLIDERS
+═══════════════════════════════════════════════════════ */
+function buildSliders(containerId, paramsCfg, pObj, prefix, color) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  paramsCfg.forEach(cfg => {
+    pObj[cfg.key] = pObj[cfg.key] !== undefined ? pObj[cfg.key] : cfg.default;
+    const id = `${prefix}-${cfg.key}`;
+    container.innerHTML += `
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label"><span class="param-name">${cfg.name}</span> ${cfg.label}</span>
+          <span class="slider-value" id="${id}-val" style="color:${color || 'var(--gray-900)'}">${pObj[cfg.key]}</span>
+        </div>
+        <input type="range" id="${id}" min="${cfg.min}" max="${cfg.max}" step="${cfg.step}" value="${pObj[cfg.key]}">
+        <div class="slider-range"><span>${cfg.min}</span><span>${cfg.max}</span></div>
+      </div>
+    `;
+  });
+
+  paramsCfg.forEach(cfg => {
+    const slider = document.getElementById(`${prefix}-${cfg.key}`);
+    const valEl = document.getElementById(`${prefix}-${cfg.key}-val`);
+    slider.addEventListener('input', () => {
+      const val = parseFloat(slider.value);
+      pObj[cfg.key] = val;
+      valEl.textContent = val;
+      updateChart();
+    });
+  });
+}
+
+function buildMainSliders() {
+  const cfg = GRAPH_CONFIGS[graphType];
+  cfg.params.forEach(p => { params[p.key] = p.default; });
+  buildSliders('sliders-container', cfg.params, params, 'main', '');
+}
+
+function buildABSliders() {
+  const cfg = GRAPH_CONFIGS[graphType];
+  cfg.params.forEach(p => {
+    paramsA[p.key] = p.default;
+    paramsB[p.key] = p.max * 0.4;
+  });
+  buildSliders('ab-a-sliders', cfg.params, paramsA, 'a', '#534AB7');
+  buildSliders('ab-b-sliders', cfg.params, paramsB, 'b', '#D85A30');
+}
+
+/* ═══════════════════════════════════════════════════════
+   CONTROLS
+═══════════════════════════════════════════════════════ */
+function setGraphType(type, btn) {
+  graphType = type;
+  params = {};
+  paramsA = {};
+  paramsB = {};
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (mode === 'single') {
+    buildMainSliders();
+  } else {
+    buildABSliders();
+  }
+  updateChart();
+}
+
+function setMode(m, btn) {
+  mode = m;
+  document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const abPanel = document.getElementById('ab-panel');
+  const mainSliders = document.getElementById('sliders-container');
+  if (mode === 'single') {
+    abPanel.classList.remove('visible');
+    mainSliders.style.display = 'block';
+    buildMainSliders();
+  } else {
+    mainSliders.style.display = 'none';
+    abPanel.classList.add('visible');
+    buildABSliders();
+  }
+  updateChart();
+}
+
+/* ═══════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════ */
+buildMainSliders();
+updateChart();
+</script>
+</body>
+</html>
